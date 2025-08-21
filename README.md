@@ -1,3 +1,47 @@
+# OSM DATASET
+
+Briefly Explain aims here. What is this that this project aims to do? How? Why?
+
+## Acknowledgements
+
+This is an output of the research project _["Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation"](https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm)_ led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the [ESRC Digital Good Network](https://digitalgood.net/) through their Digital Good Research Fund 2024-25. 
+
+The `OSM DATASET` has been developed by Lilly Makkos.
+
+### Citing
+
+You are free to use and reuse this tool under the Licence conditions. If you use this dataset in your work, please cite it as below:
+
+> Makkos, L., Cámara-Menoyo, C., Monteath, T. (2025). Nice title (Version 0.0.1) [Software]. https://github.com/WarwickCIM/OSM-hasthag-explorer
+
+
+## Installation
+
+E.g. 
+
+```python
+pip install <library_name>
+```
+
+## Usage
+
+### Creating the database
+
+### Updating the database
+
+### Visualising the database
+
+Add a screenshot here?
+
+### Querying and exporting
+
+
+## Acknowledgements
+
+This project gets inspiration from others: POTENTIALLY, YOU COULD CREDIT ANY EXAMPLES, SUCH AS THE ONES YOU CITED HERE: https://github.com/duckdb/duckdb-blog-examples/blob/main/duckdb_streamlit/pages/closest_train_stations.py, https://github.com/duckdb/duckdb-blog-examples/blob/main/duckdb_streamlit/app.py, https://github.com/mehd-io/quackcode-streamlit-duckdb/blob/main/app.py OR https://github.com/zakariachowdhury/streamlit-map-dashboard/blob/main/streamlit_app.py
+
+## Legacy README
+
 Once you have the changeset data downloaded, run the make_database.py file to make the DuckDB database and load the changeset data into it.
 
 For sanity checking, run the check_dataset.py file. It should show you the first ten rows of your dataset. This will allow you to check if 
