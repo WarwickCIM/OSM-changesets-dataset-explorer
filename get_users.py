@@ -1,3 +1,5 @@
+#get_users.py
+
 import duckdb
 
 con = duckdb.connect("osm_changesets.duckdb")
@@ -24,6 +26,7 @@ con = duckdb.connect("osm_changesets.duckdb")
 #Indexes are added to the users and user_hashtag_stats tables to speed up queries by uid, username, or hashtag.
 
 
+print("Executing the first statements")
 
 con.execute("""
 CREATE OR REPLACE TABLE users AS
@@ -68,10 +71,7 @@ LEFT JOIN (SELECT uid, user FROM name_latest WHERE rn = 1) nl USING (uid)
 ;
 """)
 
-
-#Indexes to speed up lookups by uid and username
-con.execute("CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);")
-con.execute("CREATE INDEX IF NOT EXISTS idx_users_name ON users(latest_username);")
+print("Executing user-hashtag statistics")
 
 #User-hashtag statistics
 con.execute("""
@@ -87,9 +87,7 @@ GROUP BY uid, hashtag
 ;
 """)
 
-#More indixes to speed up lookupts by user-hashtag statistics
-con.execute("CREATE INDEX IF NOT EXISTS idx_uht_uid ON user_hashtag_stats(uid);")
-con.execute("CREATE INDEX IF NOT EXISTS idx_uht_hashtag ON user_hashtag_stats(hashtag);")
+print("Executing user points")
 
 #User points
 con.execute("""
@@ -104,6 +102,16 @@ FROM changesets
 WHERE uid IS NOT NULL AND min_lat IS NOT NULL AND min_lon IS NOT NULL
 ;
 """)
+
+print("Making the indexes")
+
+#Indexes to speed up lookups by uid and username
+con.execute("CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);")
+con.execute("CREATE INDEX IF NOT EXISTS idx_users_name ON users(latest_username);")
+
+#More indixes to speed up lookupts by user-hashtag statistics
+# con.execute("CREATE INDEX IF NOT EXISTS idx_uht_uid ON user_hashtag_stats(uid);")
+con.execute("CREATE INDEX IF NOT EXISTS idx_uht_hashtag ON user_hashtag_stats(hashtag);")
 
 #Close the database connection
 con.close()

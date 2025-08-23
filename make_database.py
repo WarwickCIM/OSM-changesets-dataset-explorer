@@ -1,17 +1,15 @@
-import bz2, duckdb, pandas as pd
+#make_database.py
+
+import bz2, duckdb, pandas as pd, re
 from lxml import etree
 from tqdm import tqdm
 
-#The infile is the changeset data downloaded
 INFILE = "changesets-latest.osm.bz2"
-# Set DB to our database
 DB = "osm_changesets.duckdb"
-# Load in batches of 50000 to avoid overwhelming RAM
 BATCH = 50_000
-# Only take the first 10 million entires from the dataset (remove this variable and its corresponding logic to take the full changeset data)
-MAX_COUNT = 10_000_000  
+MAX_COUNT = 30_000_000
 
-#Connect toe the database
+# Connect to the database and add a 'hashtags' column
 con = duckdb.connect(DB)
 con.execute("""
 CREATE TABLE IF NOT EXISTS changesets (
@@ -27,11 +25,11 @@ CREATE TABLE IF NOT EXISTS changesets (
   created_by TEXT,
   comment TEXT,
   source TEXT,
-  imagery_used TEXT
+  imagery_used TEXT,
+  hashtags TEXT  -- <== new column
 );
 """)
 
-# Flush the batch from our batch variable into the database
 def flush(batch):
     if not batch:
         return
@@ -40,25 +38,27 @@ def flush(batch):
     con.execute("INSERT INTO changesets SELECT * FROM batch")
     con.unregister("batch")
 
+def extract_hashtags(comment):
+    return re.findall(r"#\w+", comment) if comment else []
+
+#Iterate through all of the rows in the bz2 file, extract the relevant fields from the XML format and insert into the database
 def parse():
     batch = []
     count = 0
 
-    #Open the changeset data
     with bz2.open(INFILE, "rb") as fh:
-        #Set the context
         context = etree.iterparse(fh, events=("end",), tag="changeset")
-        #Iterate through all elements of the data
+
         for _, elem in tqdm(context, desc="Parsing changesets", unit="changeset"):
 
-            #Stops after the first 10 million entries (remove if you want the full changeset data)
-            if count >= MAX_COUNT: 
-                break
-            
-            #Get all the attributes from the data element
+            if count % 1000000 == 0:
+                print("This is where we are:", elem.attrib.get("created_at"))
+
+            # if count > MAX_COUNT:
+            #     break
+
             a = elem.attrib
 
-            #Make a new record by extracting the data in each field 
             rec = {
                 "changeset_id": int(a.get("id")),
                 "created": a.get("created_at"),
@@ -76,42 +76,43 @@ def parse():
                 "comment": None,
                 "source": None,
                 "imagery_used": None,
+                "hashtags": None
             }
 
-            #Ensure each record is in its correct location
             for t in elem.iter("tag"):
-                k = t.get("k")
-                v = t.get("v")
+                k, v = t.get("k"), t.get("v")
                 if k == "created_by":
                     rec["created_by"] = v
                 elif k == "comment":
                     rec["comment"] = v
+                    #Extract any hashtags from the comment field of the XML if they exist
+                    hashtags = extract_hashtags(v)
+                    if hashtags:
+                        rec["hashtags"] = ", ".join(hashtags)
+                        # print("This is the hashtag found:", hashtags)
                 elif k == "source":
                     rec["source"] = v
                 elif k == "imagery_used":
                     rec["imagery_used"] = v
 
-            #Append the record to our temporary batch
             batch.append(rec)
             count += 1
 
-            #Enter the batch into our database if it exceeds 50,000 entries
             if len(batch) >= BATCH:
                 flush(batch)
                 batch.clear()
 
-            #Reset our element variable
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
 
-        #Enter the remaining rows into our database
         flush(batch)
 
     print(f"Finished. Inserted {count} changesets.")
 
 if __name__ == "__main__":
     parse()
+    #Making these indices may not work. They are only to speed up querying. If they throw an error, you can comment the problematic one.
     con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_created ON changesets(created)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_uid ON changesets(uid)")
     con.close()
