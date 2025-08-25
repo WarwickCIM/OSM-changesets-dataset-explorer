@@ -73,6 +73,8 @@ Enter into the update_database.py file. Edit the first four variables for your i
 Then run:
 python update_database.py
 
+![Alt text](/Documentation_ExecutationExamples/documentation_updatedatabaserunning.png)
+
 ## Creating the database from scratch: 
 
 1. Download the latest OSM changeset dump:
@@ -82,6 +84,8 @@ curl -O https://planet.openstreetmap.org/planet/changesets-latest.osm.bz2
 This will take approximately 3 hours. This extracts all changesets into a DuckDB database
 (osm_changesets.duckdb)
 
+![Alt text](/Documentation_ExecutationExamples/documentation_makedatabaserunning.png)
+
 3. Check whether the dataset has been correctly loaded into the database:
 python check_database.py
 
@@ -89,11 +93,15 @@ python check_database.py
 python extract_hashtags.py
 This will take approximately 50 minutes.
 
+![Alt text](/Documentation_ExecutationExamples/documentation_extracthashtagsrunning.png)
+
 5. Check whether the hashtags have been correctly loaded into the database:
 python check_hashtags.py
 
 6. Create a user table with summary statistics for each user ID in the database:
 python get_users.py
+
+![Alt text](/Documentation_ExecutationExamples/documentation_getusersrunning.png)
 
 7. Visualise the results of the database queries by running the Streamlit app (OPTIONAL):
 streamlit run streamlit_app.py
