@@ -46,6 +46,9 @@ from __future__ import annotations
 import duckdb
 import pandas as pd
 from typing import Iterable, Optional, Tuple, Union
+import os
+from datetime import datetime
+os.makedirs("QueryResults", exist_ok=True)
 
 #If you have a different name for your database, plesae change it here
 DB_PATH_DEFAULT = "osm_changesets.duckdb"
@@ -542,9 +545,32 @@ if __name__ == "__main__":
     result_dataframe.to_csv('all_users.csv', index = False)
 
 
+def make_filename(prefix, start_date=None, end_date=None, bbox=None):
+    """
+    Build a CSV filename like:
+    QueryResults/<prefix>_<start>_to_<end>_bbox_<minlat>_<minlon>_<maxlat>_<maxlon>_<YYYYMMDD>.csv
+    Any missing parts (dates/bbox) are omitted.
+    """
+    date_str = ""
+    if start_date and end_date:
+        date_str = f"_{start_date}_to_{end_date}"
+    elif start_date:
+        date_str = f"_{start_date}"
+    elif end_date:
+        date_str = f"_{end_date}"
+
+    bbox_str = ""
+    if bbox:
+        bbox_str = "_bbox_" + "_".join(map(str, bbox))
+
+    timestamp = datetime.now().strftime("%Y%m%d")
+    return f"QueryResults/{prefix}{date_str}{bbox_str}_{timestamp}.csv"
+
+
 # ------------------------------------------------------------
 # Usage Examples (You can copy/paste these into a separate file for convenience)
 # ------------------------------------------------------------
+
 
 # 1) Users who used a given hashtag (or list of hashtags)
 # from queries import get_users_for_hashtag
@@ -553,10 +579,9 @@ if __name__ == "__main__":
 #     start_date="2022-01-01",
 #     end_date="2022-12-31",
 #     order_by="n DESC",
-#     limit=50,
-#     to_csv="users_for_hashtag_2022.csv"
+#     limit=50
 # )
-# print(df.head())
+# df.to_csv(make_filename("users_for_hashtag", "2022-01-01", "2022-12-31"), index=False)
 
 # 2) Hashtags used by specific users (by username and/or UID)
 # from queries import get_hashtags_for_users
@@ -568,12 +593,12 @@ if __name__ == "__main__":
 #     order_by="n DESC",
 #     limit=100
 # )
-# print(df.head())
+# df.to_csv(make_filename("hashtags_for_users", "2023-01-01", "2023-06-30"), index=False)
 
 # 3) List all users (materialized stats in `users` table)
 # from queries import get_all_users
 # df = get_all_users(order_by="changesets_count DESC", limit=100)
-# print(df.head())
+# df.to_csv(make_filename("all_users"), index=False)
 
 # 4) Global hashtag counts (optionally filtered by date & bbox)
 # from queries import get_all_hashtags
@@ -583,7 +608,7 @@ if __name__ == "__main__":
 #     order_by="n DESC",
 #     limit=200
 # )
-# print(df.head())
+# df.to_csv(make_filename("all_hashtags", "2021-01-01", "2021-12-31"), index=False)
 
 # 5) Hashtags between two dates (alias for #4 with only dates)
 # from queries import get_hashtags_between_dates
@@ -591,7 +616,7 @@ if __name__ == "__main__":
 #     "2020-01-01", "2020-12-31",
 #     order_by="n DESC", limit=50
 # )
-# print(df.head())
+# df.to_csv(make_filename("hashtags_between_dates", "2020-01-01", "2020-12-31"), index=False)
 
 # 6) Users active inside a geographic bbox (using user_points)
 # from queries import get_users_in_bbox
@@ -603,7 +628,7 @@ if __name__ == "__main__":
 #     order_by="changesets_in_bbox DESC",
 #     limit=25
 # )
-# print(df.head())
+# df.to_csv(make_filename("users_in_bbox", "2024-01-01", "2024-03-31", bbox), index=False)
 
 # 7) Hashtags used inside a bbox (global top tags in region)
 # from queries import get_hashtags_in_bbox
@@ -615,7 +640,7 @@ if __name__ == "__main__":
 #     order_by="n DESC",
 #     limit=50
 # )
-# print(df.head())
+# df.to_csv(make_filename("hashtags_in_bbox", "2023-01-01", "2023-12-31", bbox), index=False)
 
 # 8) Hashtags used by specific users inside a bbox
 # from queries import get_hashtags_for_users_in_bbox
@@ -629,7 +654,7 @@ if __name__ == "__main__":
 #     order_by="n DESC",
 #     limit=30
 # )
-# print(df.head())
+# df.to_csv(make_filename("hashtags_for_users_in_bbox", "2022-01-01", "2022-12-31", bbox), index=False)
 
 # 9) Users for a given hashtag restricted to a bbox
 # from queries import get_users_for_hashtag_in_bbox
@@ -642,7 +667,7 @@ if __name__ == "__main__":
 #     order_by="n DESC",
 #     limit=50
 # )
-# print(df.head())
+# df.to_csv(make_filename("users_for_hashtag_in_bbox", "2021-06-01", "2021-12-31", bbox), index=False)
 
 # 10) All point centroids (user_points) for specific users
 # from queries import get_user_points
@@ -650,10 +675,9 @@ if __name__ == "__main__":
 #     usernames=["alice123"],
 #     uids=[12345],
 #     start_date="2023-05-01",
-#     end_date="2023-06-01",
-#     to_csv="alice_points_may_june_2023.csv"
+#     end_date="2023-06-01"
 # )
-# print(df.head())
+# df.to_csv(make_filename("user_points", "2023-05-01", "2023-06-01"), index=False)
 
 # 11) All point centroids for a hashtag or list of hashtags
 # from queries import get_hashtag_points
@@ -662,7 +686,7 @@ if __name__ == "__main__":
 #     start_date="2020-01-01",
 #     end_date="2020-12-31"
 # )
-# print(df.head())
+# df.to_csv(make_filename("hashtag_points", "2020-01-01", "2020-12-31"), index=False)
 
 # 12) Count one or more hashtags (optional date range)
 # from queries import count_hashtag
@@ -671,7 +695,7 @@ if __name__ == "__main__":
 #     start_date="2019-01-01",
 #     end_date="2024-12-31"
 # )
-# print(df)
+# df.to_csv(make_filename("count_hashtag", "2019-01-01", "2024-12-31"), index=False)
 
 # 13) Count changesets per user (by uid and/or username)
 # from queries import count_user_changes
@@ -681,5 +705,4 @@ if __name__ == "__main__":
 #     start_date="2022-01-01",
 #     end_date="2022-12-31"
 # )
-# print(df)
-#
+# df.to_csv(make_filename("count_user_changes", "2022-01-01", "2022-12-31"), index=False)
