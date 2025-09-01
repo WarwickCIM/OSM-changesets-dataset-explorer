@@ -108,6 +108,14 @@ streamlit run streamlit_app.py
 
 ![Alt text](/Documentation_ExecutionExamples/documentation_streamlitapprunning.png)
 
+## Finding changeset 'hotspots'
+
+Changeset hotspots are defined in the code as bounding boxes were multiple changes have been made by multiple users, and comments of these changes include indications that the changes are controversial. 
+
+Run the hostpots_finder.py, ensuring that the duckdb database is in the same directory. This will produce a .csv file in the the folder 'QueryResults' in the current directory.
+
+To view of the hotspots, you can run plot_hotspots.py which will map the found hospots on a Cartopy map and save these maps in the 'Query Results' folder as .png files.
+
 ## Acknowledgements 
 
 This project was inspired by and builds on examples of using DuckDB and Streamlit together, including:  
