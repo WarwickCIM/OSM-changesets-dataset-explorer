@@ -116,6 +116,9 @@ Run the hostpots_finder.py, ensuring that the duckdb database is in the same dir
 
 To view of the hotspots, you can run plot_hotspots.py which will map the found hospots on a Cartopy map and save these maps in the 'Query Results' folder as .png files.
 
+Currently, you can view the top 10,000 hotspots defined by the following criteria in the 'QueryResultsExamples' directory. The hotspots listed are defined by:
+10 or more changes by 3 or more users, within a 0.01 x 0.01 degree area, scored by use of contentious comments including 'vandal', 'wrong', 'undo', 'dispute', 'revert'. Areas with more changes by more users containing more contentious comments are scored higher. The final list is ordered by score and the top 10,000 are taken.
+
 ## Acknowledgements 
 
 This project was inspired by and builds on examples of using DuckDB and Streamlit together, including:  
