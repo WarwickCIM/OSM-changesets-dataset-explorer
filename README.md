@@ -62,37 +62,10 @@ From the terminal,
 Examples of the output you should see in your terminal when running our 
 files can be found in 'Documentation_ExamplesExecution.
 
-## Running basic queries in the database:
 
-1. To retrieve the results of basic queries such as: 
 
-Top Hashtags,
-Top Users,
-Hashtags by User,
-Hashtags by Year,
-Users by Hashtag,
-Users by Year
 
-Edit the database_queries.py file. At the bottom, chose the function that you would like to run. Alternatively, write or use one of the examples
-in the execute_database_queries.py file. 
-The result of the query inside the function will be saved to your computer as a .csv file.
-
-Some examples of laready-executed database queries in the form of .csv
-files can be found in the QueryResultsExamples folder.
-
-## Uploading recent changeset data to the database: 
-
-When new OSM changesets are released: 
-
-1. Download the new .osm.bz2 file
-2. Run the update pipeline to append new changesets, extract new hashtags and update the user table. 
-Enter into the update_database.py file. Edit the first four variables for your infile, your database file, your batch size and optionally your max entry count.
-Then run:
-python update_database.py
-
-![Alt text](/Documentation_ExecutionExamples/documentation_updatedatabaserunning.png)
-
-## Creating the database from scratch: 
+### Creating the database from scratch: 
 
 1. Download the latest OSM changeset dump:
 curl -O https://planet.openstreetmap.org/planet/changesets-latest.osm.bz2
@@ -125,7 +98,42 @@ streamlit run streamlit_app.py
 
 ![Alt text](/Documentation_ExecutionExamples/documentation_streamlitapprunning.png)
 
-## Finding changeset 'hotspots'
+### Updating existing database with recent changeset data
+
+When new OSM changesets are released: 
+
+1. Download the new .osm.bz2 file 
+2. Run the update pipeline to append new changesets, extract new hashtags and update the user table. 
+Enter into the update_database.py file. Edit the first four variables for your infile, your database file, your batch size and optionally your max entry count.
+
+Then run:
+
+```bash
+python update_database.py
+```
+
+![Alt text](/Documentation_ExecutionExamples/documentation_updatedatabaserunning.png)
+
+### Running basic queries in the database:
+
+1. To retrieve the results of basic queries such as: 
+
+Top Hashtags,
+Top Users,
+Hashtags by User,
+Hashtags by Year,
+Users by Hashtag,
+Users by Year
+
+Edit the database_queries.py file. At the bottom, chose the function that you would like to run. Alternatively, write or use one of the examples
+in the execute_database_queries.py file. 
+The result of the query inside the function will be saved to your computer as a .csv file.
+
+Some examples of laready-executed database queries in the form of .csv
+files can be found in the QueryResultsExamples folder.
+
+
+### Finding changeset 'hotspots'
 
 Changeset hotspots are defined in the code as bounding boxes were multiple changes have been made by multiple users, and comments of these changes include indications that the changes are controversial. 
 
