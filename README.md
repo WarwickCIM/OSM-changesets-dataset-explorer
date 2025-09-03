@@ -32,13 +32,30 @@ If you use this dataset in your work, please cite it as below:
 
 ## Installation
 
-Clone this repository and install requirements:
+From the terminal, 
+1. clone this repository and install requirements:
+    ```bash
+    git clone https://github.com/WarwickCIM/OSM-hashtag-explorer
+    cd OSM-hashtag-explorer
 
-In Bash:
+    ```
+2. Create a virtual environment (optional but recommended):
 
-git clone https://github.com/WarwickCIM/OSM-hashtag-explorer
-cd OSM-hashtag-explorer
-pip install -r requirements.txt
+    ```bash
+    python -m venv venv            # Create a virtual environment named 'venv'
+    ```
+
+3. Activate the virtual environment:
+
+    ```bash
+    source venv/bin/activate   
+    ```
+
+4. Install the required packages:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
