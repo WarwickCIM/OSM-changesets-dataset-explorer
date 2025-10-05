@@ -66,7 +66,13 @@ def find_hotspots(
         date_filter.append(f"created < TIMESTAMP '{date_to} 00:00:00'")
     date_where = " AND " + " AND ".join(date_filter) if date_filter else ""
 
-    # Use REGEXP_MATCH (boolean) + COUNT_IF or SUM for portability
+    #this sql takes all changesets and turns them into weekly grid cell hotspots
+    #first it finds the centroid of each changeset bbox using min and max lat lon
+    #then it snaps each centroid into a grid cell of size cell_deg and truncates the timestamp to the start of the week
+    #then it groups by cell and week to count how many changesets there are how many distinct users contributed and how many comments match controversy keywords
+    #then it creates a raw score by weighting changesets users and keyword hits
+    #finally it filters out quiet cells that do not meet minimum thresholds and returns the top limit hotspots ordered by score
+
     sql = f"""
     WITH params AS (SELECT {cell_deg}::DOUBLE AS cell_deg),
 

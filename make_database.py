@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS changesets (
   comment TEXT,
   source TEXT,
   imagery_used TEXT,
-  hashtags TEXT  -- <== new column
+  hashtags TEXT
 );
 """)
 
