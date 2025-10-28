@@ -7,8 +7,9 @@ from tqdm import tqdm
 INFILE = "changesets-latest.osm.bz2"
 DB = "osm_changesets.duckdb"
 BATCH = 50_000
-MAX_COUNT = 30_000_000
+MAX_COUNT = None
 
+print(">>> Connecting and making changesets table in the database")
 # Connect to the database and add a 'hashtags' column
 con = duckdb.connect(DB)
 con.execute("""
@@ -26,7 +27,8 @@ CREATE TABLE IF NOT EXISTS changesets (
   comment TEXT,
   source TEXT,
   imagery_used TEXT,
-  hashtags TEXT
+  hashtags TEXT,
+  locale TEXT
 );
 """)
 
@@ -76,7 +78,8 @@ def parse():
                 "comment": None,
                 "source": None,
                 "imagery_used": None,
-                "hashtags": None
+                "hashtags": None,
+                "locale": None
             }
 
             for t in elem.iter("tag"):
@@ -94,6 +97,9 @@ def parse():
                     rec["source"] = v
                 elif k == "imagery_used":
                     rec["imagery_used"] = v
+                elif k in ("locale", "language", "request_language"):
+                    if rec["locale"] is None:
+                        rec["locale"] = v.strip().replace("_","-").lower() or None
 
             batch.append(rec)
             count += 1
@@ -113,6 +119,10 @@ def parse():
 if __name__ == "__main__":
     parse()
     #Making these indices may not work. They are only to speed up querying. If they throw an error, you can comment the problematic one.
-    con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_created ON changesets(created)")
-    con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_uid ON changesets(uid)")
+    print(">>> Making indices on the database")
+    try:
+        con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_created ON changesets(created)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_changesets_uid ON changesets(uid)")
+    except Exception as e:
+        print(f"[warn] Skipping index due to error: {e}")
     con.close()

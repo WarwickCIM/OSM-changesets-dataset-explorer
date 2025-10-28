@@ -22,11 +22,11 @@ from urllib.parse import unquote
 from lxml import etree
 from tqdm import tqdm
 
-INFILE = "changesets-latest.osm.bz2"
+INFILE = "changesets-251020.osm.bz2"
 DB     = "osm_changesets.duckdb"
 BATCH  = 50_000
 #Max count can be set to None, it is not mandatory
-MAX_COUNT = 1_000_000
+MAX_COUNT = None
 
 # Regex helpers
 COMMENT_HASHTAGS_RE = re.compile(r"#\w+")
@@ -35,6 +35,18 @@ SEP_SPLIT    = re.compile(r"[,;/|]+")
 TRIM_PUNCT   = re.compile(r"^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$", re.UNICODE)
 MIN_LEN      = 3
 DROP_NUMERIC = True
+
+def count_changesets(infile: str) -> int:
+    """Fast forward-only count of <changeset> elements in a .osm.bz2 dump."""
+    total = 0
+    with bz2.open(infile, "rb") as fh:
+        for _, elem in etree.iterparse(fh, events=("end",), tag="changeset"):
+            total += 1
+            #clear to keep memory flat
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+    return total
 
 #Extracts only hashtags (if there are any) from the comment (if there is one) on a change
 def extract_hashtags_from_comment(comment: str):
@@ -95,7 +107,8 @@ CREATE TABLE IF NOT EXISTS changesets (
   comment TEXT,
   source TEXT,
   imagery_used TEXT,
-  hashtags TEXT
+  hashtags TEXT,
+  UNIQUE(changeset_id)
 );
 """)
 
@@ -123,36 +136,57 @@ def flush_changesets(batch):
     if not batch:
         return []
     df = pd.DataFrame.from_records(batch)
-    # Anti-join against existing IDs inside DuckDB for faster insert
     con.register("batch", df)
+
+    #compute unseen IDs
+    unseen = con.execute("""
+        SELECT b.changeset_id
+        FROM batch b
+        ANTI JOIN changesets c USING (changeset_id)
+    """).df()["changeset_id"].tolist()
+
+    #insert only unseen rows
     con.execute("""
         INSERT INTO changesets
         SELECT b.*
         FROM batch b
-        LEFT JOIN changesets c ON c.changeset_id = b.changeset_id
-        WHERE c.changeset_id IS NULL
+        ANTI JOIN changesets c USING (changeset_id)
     """)
-    # Return the list of new IDs that were inserted
-    new_ids = con.execute("""
-        SELECT b.changeset_id
-        FROM batch b
-        LEFT JOIN changesets c ON c.changeset_id = b.changeset_id
-        WHERE c.created = b.created AND c.user IS NOT NULL OR c.user IS NULL
-    """).df()["changeset_id"].tolist()
-    con.unregister("batch")
-    return new_ids
 
-print("Parsing new changesets & appending")
+    con.unregister("batch")
+    return unseen
+
+# --- two-pass setup ---
+if MAX_COUNT is not None and MAX_COUNT > 0:
+    print("Counting changesets for skip window...")
+    total_changesets = count_changesets(INFILE)
+    skip_first = max(0, total_changesets - MAX_COUNT)
+    print(f">> File contains {total_changesets:,} changesets. "
+          f"Processing only the last {min(MAX_COUNT, total_changesets):,} "
+          f"(skipping the first {skip_first:,}).")
+else:
+    skip_first = 0
+
+print("Parsing new changesets & appending (windowed)")
 new_changeset_ids = []
 count = 0
 batch = []
+processed = 0
 
-#Iterate through the bz2 file, inserting each line that has not been seen before
 with bz2.open(INFILE, "rb") as fh:
     context = etree.iterparse(fh, events=("end",), tag="changeset")
     for _, elem in tqdm(context, desc="Parsing .osm.bz2", unit="changeset"):
-        a = elem.attrib
+        #skip the first N changesets quickly, without building records
+        if skip_first > 0:
+            skip_first -= 1
+            #light cleanup
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+            continue
 
+        #normal processing
+        a = elem.attrib
         rec = {
             "changeset_id": int(a.get("id")),
             "created": a.get("created_at"),
@@ -173,14 +207,12 @@ with bz2.open(INFILE, "rb") as fh:
             "hashtags": None
         }
 
-        #Read all tags in the XML
         for t in elem.iter("tag"):
             k, v = t.get("k"), t.get("v")
             if k == "created_by":
                 rec["created_by"] = v
             elif k == "comment":
                 rec["comment"] = v
-                #Extract hashtags from the comments
                 rec["hashtags"] = extract_hashtags_from_comment(v)
             elif k == "source":
                 rec["source"] = v
@@ -189,8 +221,8 @@ with bz2.open(INFILE, "rb") as fh:
 
         batch.append(rec)
         count += 1
+        processed += 1
 
-        #Perform the database insertion in batches to avoid overwhelming RAM.
         if len(batch) >= BATCH:
             new_ids = flush_changesets(batch)
             if new_ids:
@@ -198,12 +230,11 @@ with bz2.open(INFILE, "rb") as fh:
             batch.clear()
 
         elem.clear()
-        # free siblings
         while elem.getprevious() is not None:
             del elem.getparent()[0]
 
-        #Will stop on MAX_COUNT if it has been provided
-        if MAX_COUNT is not None and count >= MAX_COUNT:
+        #MAX_COUNT
+        if MAX_COUNT is not None and processed >= MAX_COUNT:
             break
 
 #Load the remaining entires into the database
@@ -315,9 +346,17 @@ LEFT JOIN ht USING (uid)
 LEFT JOIN (SELECT uid, user FROM name_latest WHERE rn = 1) nl USING (uid);
 """)
 
-#These may cause an error. They are optional, they simply make querying faster. If they throw an error, simply comment them out.
-con.execute("CREATE INDEX IF NOT EXISTS idx_users_uid  ON users(uid);")
-con.execute("CREATE INDEX IF NOT EXISTS idx_users_name ON users(latest_username);")
+#These may cause an error. They are optional, they simply make querying faster.
+for stmt in [
+    "CREATE INDEX IF NOT EXISTS idx_changesets_id ON changesets(changeset_id);",
+    "CREATE INDEX IF NOT EXISTS idx_hashtag_norm ON changeset_hashtags(hashtag);",
+    "CREATE INDEX IF NOT EXISTS idx_users_uid  ON users(uid);",
+    "CREATE INDEX IF NOT EXISTS idx_users_name ON users(latest_username);",
+]:
+    try:
+        con.execute(stmt)
+    except Exception as e:
+        print(f"[warn] Skipping index due to error: {e}")
 
 con.execute("""
 CREATE OR REPLACE TABLE user_hashtag_stats AS
@@ -331,10 +370,6 @@ FROM changeset_hashtags
 GROUP BY uid, hashtag;
 """)
 
-# This below line can be uncommented if it works
-# con.execute("CREATE INDEX IF NOT EXISTS idx_uht_uid ON user_hashtag_stats(uid);")
-con.execute("CREATE INDEX IF NOT EXISTS idx_uht_hashtag ON user_hashtag_stats(hashtag);")
-
 con.execute("""
 CREATE OR REPLACE VIEW user_points AS
 SELECT
@@ -346,6 +381,11 @@ SELECT
 FROM changesets
 WHERE uid IS NOT NULL AND min_lat IS NOT NULL AND min_lon IS NOT NULL;
 """)
+
+try:
+    con.execute("CREATE INDEX IF NOT EXISTS idx_uht_hashtag ON user_hashtag_stats(hashtag);")
+except Exception as e:
+    print(f"[warn] Skipping index due to error: {e}")
 
 print(">> Done. Database updated.")
 con.close()

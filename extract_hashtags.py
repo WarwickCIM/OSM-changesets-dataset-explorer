@@ -3,7 +3,6 @@
 import time
 import duckdb
 import pandas as pd
-import numpy as np
 import regex as re
 import unicodedata
 from urllib.parse import unquote
@@ -65,6 +64,7 @@ def norm_one(raw_like: str):
         out.append(p)
     return raw_token, out  #return original raw hashtag with a list of tokens
 
+print(">>> Connecting to database")
 #Connect to the database
 con = duckdb.connect(DB)
 
@@ -93,12 +93,14 @@ else:
         );
     """)
 
+print(">>> Performing a baseline count for tqdm")
 #Perform a baseline count for tqdm
 try:
     n_before = con.execute("SELECT COUNT(*) FROM changeset_hashtags").fetchone()[0]
 except duckdb.Error:
     n_before = 0
 
+print(">>> Determining candidate pool and starting ID")
 #determine candidate pool and starting id
 if DROP_AND_REBUILD:
     total_candidates = con.execute(
@@ -134,6 +136,7 @@ pbar = tqdm(total=total_candidates, unit="changesets",
 last_id = int(min_id) - 1
 t0 = time.time()
 
+print(">>> Starting Loop")
 while True:
     # Fetch next window of candidate IDs
     ids_df = con.execute("""

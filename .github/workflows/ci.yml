@@ -1,0 +1,117 @@
+name: CI (deps + smoke)
+
+on:
+  push:
+    paths:
+      - requirements.in
+      - requirements-lock-*.txt
+      - "**/*.py"
+      - ".github/workflows/ci.yml"
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHON_VERSION: "3.11"
+      PIP_PREFER_BINARY: "1"
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # ---- System prerequisites (mainly for lxml when a wheel isn't available) ----
+      - name: Install system deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libxml2-dev libxslt1-dev zlib1g-dev
+
+      - name: Install system deps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install libxml2 libxslt || true
+
+      # ---- Decide which lockfile to use for this OS ----
+      - name: Pick lockfile for this OS
+        id: lf
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   echo "lock=requirements-lock-linux.txt"   >> "$GITHUB_OUTPUT" ;;
+            macOS)   echo "lock=requirements-lock-darwin.txt"  >> "$GITHUB_OUTPUT" ;;
+            Windows) echo "lock=requirements-lock-windows.txt" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "Using lockfile: $(cat $GITHUB_OUTPUT | sed -n 's/^lock=//p')"
+
+      - name: Upgrade pip + install pip-tools
+        run: python -m pip install --upgrade pip pip-tools
+
+      # ---- If the lockfile for this OS is missing, compile it from requirements.in ----
+      - name: Compile lockfile if missing
+        shell: bash
+        run: |
+          lf="${{ steps.lf.outputs.lock }}"
+          if [ ! -f "$lf" ]; then
+            echo "No $lf found; compiling from requirements.in"
+            pip-compile --generate-hashes -o "$lf" requirements.in
+          fi
+
+      # ---- Install deps from the lockfile ----
+      - name: Install from lockfile
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r "${{ steps.lf.outputs.lock }}"
+
+      # ---- Smoke test: imports ----
+      - name: Imports smoke test
+        shell: bash
+        run: |
+          python - << 'PY'
+          import duckdb, lxml, pandas, regex, tqdm
+          print("Imports OK")
+          PY
+
+      # ---- Seed a tiny DB and run your scripts against it ----
+      - name: Seed tiny DuckDB
+        shell: bash
+        run: |
+          python - << 'PY'
+          import duckdb, pandas as pd
+          con = duckdb.connect("osm_changesets.duckdb")
+          con.execute("""create table if not exists changesets(
+            changeset_id bigint, created timestamp, closed timestamp, uid bigint, "user" text,
+            open boolean, num_changes integer, comments_count integer,
+            min_lat double, min_lon double, max_lat double, max_lon double,
+            created_by text, comment text, source text, imagery_used text, hashtags text, locale text
+          )""")
+          df = pd.DataFrame([
+            dict(changeset_id=1, created="2020-01-01T00:00:00Z", closed=None, uid=100, user="alice",
+                open=False, num_changes=5, comments_count=0, min_lat=None, min_lon=None, max_lat=None, max_lon=None,
+                created_by="iD", comment="mapping #roads", source=None, imagery_used=None, hashtags="#roads", locale="en-GB"),
+            dict(changeset_id=2, created="2020-01-02T00:00:00Z", closed=None, uid=101, user="bob",
+                open=False, num_changes=3, comments_count=0, min_lat=None, min_lon=None, max_lat=None, max_lon=None,
+                created_by="iD", comment="no tags here", source=None, imagery_used=None, hashtags=None, locale=None),
+          ])
+          con.register("seed", df)
+          con.execute("insert into changesets select * from seed")
+          con.unregister("seed")
+          print("Seeded rows:", con.execute("select count(*) from changesets").fetchone()[0])
+          con.close()
+          print("DuckDB seed OK")
+          PY
+
+      - name: Run extract_hashtags.py
+        run: python extract_hashtags.py
+
+      - name: Run get_users.py
+        run: python get_users.py

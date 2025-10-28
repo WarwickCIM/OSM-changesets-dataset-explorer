@@ -10,3 +10,8 @@ for obj in gc.get_objects():
             obj.close()
     except:
         pass
+
+try:
+    duckdb.close()  #closes default connections
+except:
+    pass

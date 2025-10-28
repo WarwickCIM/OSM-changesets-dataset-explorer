@@ -30,7 +30,38 @@ If you use this dataset in your work, please cite it as below:
 
 ---
 
+## Environment
+
+We require Python: 3.11
+
 ## Installation
+
+## Prerequisites 
+
+Some Python packages ship prebuilt wheels per poerating system. If a wheel isn't available for your platform / Python version, pip will try to build it from source.
+This will require tyou to have compilers and headers.
+In this project, the package 'lxml' may trigger a wheel build. Installing the system packages below will
+prevent surprise build failures.
+If using Linux, all wheels are provided, so you will not have to worry about this. 
+
+For Linux (Debian/Ubuntu) users: 
+```
+  sudo apt-get update
+  sudo apt-get install -y build-essential libxml2-dev libxslt1-dev zlib1g-dev
+```
+
+For macOS users: 
+```
+  xcode-select --install
+  brew install libxml2 libxslt
+```
+
+
+Please note, if you see 'building lxml' in your terminal and it fails, re-run the prerequisites above for your
+OS, then reinstall. Please ensure you are using Python 3.11. If pip still tries to rebuild, run 
+```
+  pip install --upgrade pip
+```
 
 From the terminal, 
 1. clone this repository and install requirements:
@@ -51,10 +82,26 @@ From the terminal,
     source venv/bin/activate   
     ```
 
-4. Install the required packages:
+4. From your virtual environment install pip-tools as  `pip install pip-tools`
+
+4. Install the required packages using the lockfile for your specific operating system:
+
+  Linux: 
 
     ```bash
-    pip install -r requirements.txt
+    pip install --required-hashes -r requirements-lock-linux.txt
+    ```
+
+  macOS: 
+
+    ```
+    pip install --required-hashes -r requirements-lock-darwin.txt
+    ```
+
+  Windows: 
+
+    ```bash
+    pip install --required-hashes -r requirements-lock-windows.txt
     ```
 
 ## Usage

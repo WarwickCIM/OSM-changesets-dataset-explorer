@@ -26,7 +26,7 @@ con = duckdb.connect("osm_changesets.duckdb")
 #Indexes are added to the users and user_hashtag_stats tables to speed up queries by uid, username, or hashtag.
 
 
-print("Executing the first statements")
+print(">>> Executing the first statements")
 
 con.execute("""
 CREATE OR REPLACE TABLE users AS
@@ -71,7 +71,7 @@ LEFT JOIN (SELECT uid, user FROM name_latest WHERE rn = 1) nl USING (uid)
 ;
 """)
 
-print("Executing user-hashtag statistics")
+print(">>> Executing user-hashtag statistics")
 
 #User-hashtag statistics
 con.execute("""
@@ -87,7 +87,7 @@ GROUP BY uid, hashtag
 ;
 """)
 
-print("Executing user points")
+print(">>> Executing user points")
 
 #User points
 con.execute("""
@@ -103,7 +103,7 @@ WHERE uid IS NOT NULL AND min_lat IS NOT NULL AND min_lon IS NOT NULL
 ;
 """)
 
-print("Making the indexes")
+print(">>> Making the indexes")
 
 #Indexes to speed up lookups by uid and username
 con.execute("CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);")
@@ -115,5 +115,5 @@ con.execute("CREATE INDEX IF NOT EXISTS idx_uht_hashtag ON user_hashtag_stats(ha
 
 #Close the database connection
 con.close()
-print("User tables/materialized views created.")
+print(">>> User tables/materialized views created.")
 

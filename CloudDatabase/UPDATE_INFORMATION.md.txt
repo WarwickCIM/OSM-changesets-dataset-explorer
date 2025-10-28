@@ -1,0 +1,3 @@
+UPDATE_INFORMATION.md
+
+This database is up to date for the 25/10/2025
