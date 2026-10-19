@@ -1,4 +1,4 @@
-# OSM DATASET
+# OSM changesets dataset explorer
 
 - This project aims to make OpenStreetMap (OSM) changeset data easier to query and explore by researchers.  
 - The Overpass API does not allow direct queries for usernames or hashtags, yet this information is contained in OSM changesets.  
