@@ -11,15 +11,11 @@ This tool addresses that problem by:
 - Offering a Streamlit-based interface for interactive visualisation of hashtag use, 
 error-checking, query-result validation.  
 
----
-
 ## Acknowledgements
 
 This is an output of the research project _["Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation"](https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm)_ led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the [ESRC Digital Good Network](https://digitalgood.net/) through their Digital Good Research Fund 2024-25. 
 
 The `OSM DATASET` has been developed by Lilly Horvath-Makkos.
-
----
 
 ### Citing
 
@@ -28,7 +24,6 @@ If you use this dataset in your work, please cite it as below:
 
 > Horvath-Makkos, L., Cámara-Menoyo, C., Monteath, T. (2025). OSM Changeset Database Explorer (Version 0.0.1) [Software]. https://github.com/WarwickCIM/OSM-hashtag-explorer
 
----
 
 ## Installation
 
