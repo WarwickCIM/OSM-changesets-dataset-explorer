@@ -30,17 +30,17 @@ If you use this dataset in your work, please cite it as below:
 
 ---
 
-## Environment
+## Installation
+
+### Environment
 
 We require Python: 3.11
 
-## Installation
+### Prerequisites 
 
-## Prerequisites 
-
-Some Python packages ship prebuilt wheels per poerating system. If a wheel isn't available for your platform / Python version, pip will try to build it from source.
-This will require tyou to have compilers and headers.
-In this project, the package 'lxml' may trigger a wheel build. Installing the system packages below will
+Some Python packages ship prebuilt wheels per operating system. If a wheel isn't available for your platform / Python version, pip will try to build it from source.
+This will require you to have compilers and headers.
+In this project, the package `lxml` may trigger a wheel build. Installing the system packages below will
 prevent surprise build failures.
 If using Linux, all wheels are provided, so you will not have to worry about this. 
 
