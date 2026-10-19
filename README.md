@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23482739.svg)](https://doi.org/10.5281/zenodo.23482739)
+
 # OSM changesets dataset explorer
 
 - This project aims to make OpenStreetMap (OSM) changeset data easier to query and explore by researchers.  
